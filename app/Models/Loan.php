@@ -65,6 +65,13 @@ class Loan extends Model
         $query->whereNull('returned_at');
     }
 
+    /** @param Builder<Loan> $query */
+    #[Scope]
+    protected function overdue(Builder $query): void
+    {
+        $query->whereNull('returned_at')->whereDate('due_date', '<', today());
+    }
+
     /** Overdue is derived from due_date, never stored. */
     public function isOverdue(): bool
     {

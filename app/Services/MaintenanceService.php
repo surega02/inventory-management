@@ -8,6 +8,7 @@ use App\Exceptions\ConflictException;
 use App\Models\Asset;
 use App\Models\Maintenance;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 
@@ -30,6 +31,30 @@ class MaintenanceService
             ->orderByDesc('id')
             ->limit(20)
             ->get();
+    }
+
+    /**
+     * Maintenance jobs across assets, newest first. Operational data: employees get
+     * nothing even if a caller forgets to hide this from them.
+     *
+     * @param  array{asset_code?: string|null, status?: string|null}  $filters
+     * @return array{total: int, items: Collection<int, Maintenance>}
+     */
+    public function history(User $actor, array $filters, int $limit = 20): array
+    {
+        $query = Maintenance::query()
+            ->when(! $actor->canManageInventory(), fn (Builder $q) => $q->whereRaw('1 = 0'))
+            ->when($filters['asset_code'] ?? null, fn (Builder $q, string $code) => $q->whereHas('asset', fn (Builder $a) => $a->withTrashed()->whereRaw('upper(code) = ?', [strtoupper($code)])))
+            ->when($filters['status'] ?? null, fn (Builder $q, string $status) => $q->where('status', $status));
+
+        return [
+            'total' => (clone $query)->count(),
+            'items' => $query->with('asset:id,code,name')
+                ->orderByDesc('started_at')
+                ->orderByDesc('id')
+                ->limit(min(max($limit, 1), 20))
+                ->get(),
+        ];
     }
 
     public function start(User $actor, Asset $asset, string $description, string $startedAt, ?string $vendor, ?string $cost): Maintenance

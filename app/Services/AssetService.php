@@ -31,20 +31,49 @@ class AssetService
         $sort = $filters['sort'] ?? 'code';
         $column = ltrim($sort, '-');
 
-        return Asset::visibleTo($actor)
+        return $this->filtered($actor, $filters)
             ->with(['category:id,code,name', 'location:id,code,name'])
+            ->orderBy(in_array($column, self::SORTS, true) ? $column : 'code', str_starts_with($sort, '-') ? 'desc' : 'asc')
+            ->orderBy('id')
+            ->paginate(20)
+            ->withQueryString();
+    }
+
+    /**
+     * Chatbot search: same filters as list(), but category/location may name several
+     * rows (a loose "L2" matches every L2 room) and at most 20 rows come back.
+     *
+     * @param  array{q?: string|null, category_id?: int|list<int>|null, location_id?: int|list<int>|null, status?: string|null}  $filters
+     * @return array{total: int, items: Collection<int, Asset>}
+     */
+    public function search(User $actor, array $filters, int $limit = 20): array
+    {
+        $query = $this->filtered($actor, $filters);
+
+        return [
+            'total' => (clone $query)->count(),
+            'items' => $query->with(['category:id,code,name', 'location:id,code,name'])
+                ->orderBy('code')->orderBy('id')
+                ->limit(min(max($limit, 1), 20))
+                ->get(),
+        ];
+    }
+
+    /**
+     * @param  array{q?: string|null, category_id?: int|list<int>|null, location_id?: int|list<int>|null, status?: string|null}  $filters
+     * @return Builder<Asset>
+     */
+    private function filtered(User $actor, array $filters): Builder
+    {
+        return Asset::visibleTo($actor)
             // OR filters stay inside one group so they can never widen visibleTo
             ->when($filters['q'] ?? null, fn (Builder $q, string $term) => $q->where(fn (Builder $w) => $w
                 ->whereLike('code', "%{$term}%")
                 ->orWhereLike('name', "%{$term}%")
                 ->orWhereLike('serial_number', "%{$term}%")))
-            ->when($filters['category_id'] ?? null, fn (Builder $q, int $id) => $q->where('category_id', $id))
-            ->when($filters['location_id'] ?? null, fn (Builder $q, int $id) => $q->where('location_id', $id))
-            ->when($filters['status'] ?? null, fn (Builder $q, string $status) => $q->where('status', $status))
-            ->orderBy(in_array($column, self::SORTS, true) ? $column : 'code', str_starts_with($sort, '-') ? 'desc' : 'asc')
-            ->orderBy('id')
-            ->paginate(20)
-            ->withQueryString();
+            ->when($filters['category_id'] ?? null, fn (Builder $q, int|array $ids) => $q->whereIn('category_id', (array) $ids))
+            ->when($filters['location_id'] ?? null, fn (Builder $q, int|array $ids) => $q->whereIn('location_id', (array) $ids))
+            ->when($filters['status'] ?? null, fn (Builder $q, string $status) => $q->where('status', $status));
     }
 
     /**
@@ -69,6 +98,14 @@ class AssetService
     public function findVisible(User $actor, int $id): Asset
     {
         return Asset::visibleTo($actor)->with(['category', 'location'])->findOrFail($id);
+    }
+
+    /** null when no asset has this code (case-insensitive) or it is outside the actor's scope. */
+    public function findVisibleByCode(User $actor, string $code): ?Asset
+    {
+        return Asset::visibleTo($actor)->with(['category', 'location'])
+            ->whereRaw('upper(code) = ?', [strtoupper(trim($code))])
+            ->first();
     }
 
     /**

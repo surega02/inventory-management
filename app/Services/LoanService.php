@@ -34,8 +34,8 @@ class LoanService
                 ->whereHas('asset', fn (Builder $a) => $a->withTrashed()->whereLike('code', "%{$term}%")->orWhereLike('name', "%{$term}%"))
                 ->orWhereHas('borrower', fn (Builder $b) => $b->withTrashed()->whereLike('name', "%{$term}%"))))
             ->when($filters['status'] ?? null, fn (Builder $q, string $status) => match ($status) {
-                'active' => $q->whereNull('returned_at'),
-                'overdue' => $q->whereNull('returned_at')->whereDate('due_date', '<', today()),
+                'active' => $q->active(),
+                'overdue' => $q->overdue(),
                 default => $q->whereNotNull('returned_at'),
             })
             ->orderByDesc('loaned_at')
@@ -58,6 +58,57 @@ class LoanService
             ->orderByDesc('id')
             ->limit(20)
             ->get();
+    }
+
+    /**
+     * Loans not yet returned that the actor may see, earliest due date first
+     * (no due date last). Used by the dashboard and the chatbot.
+     *
+     * @param  list<int>|null  $categoryIds
+     * @return array{total: int, items: Collection<int, Loan>}
+     */
+    public function active(User $actor, bool $overdueOnly = false, ?array $categoryIds = null, int $limit = 20): array
+    {
+        $query = Loan::visibleTo($actor)
+            ->when($overdueOnly, fn (Builder $q) => $q->overdue(), fn (Builder $q) => $q->active())
+            ->when($categoryIds, fn (Builder $q, array $ids) => $q->whereHas('asset', fn (Builder $a) => $a->withTrashed()->whereIn('category_id', $ids)));
+
+        return [
+            'total' => (clone $query)->count(),
+            'items' => $query->with(['asset:id,code,name', 'borrower:id,name'])
+                ->orderByRaw('due_date asc nulls last')
+                ->orderBy('loaned_at')
+                ->orderBy('id')
+                ->limit(min(max($limit, 1), 20))
+                ->get(),
+        ];
+    }
+
+    /**
+     * Loan history (active and returned) the actor may see, newest first. Employees
+     * only ever get their own loans: visibleTo wins over any borrower filter.
+     *
+     * @param  array{asset_code?: string|null, borrower?: string|null, date_from?: string|null, date_to?: string|null}  $filters  dates filter loaned_at (Y-m-d, inclusive)
+     * @return array{total: int, items: Collection<int, Loan>}
+     */
+    public function history(User $actor, array $filters, int $limit = 20): array
+    {
+        $query = Loan::visibleTo($actor)
+            ->when($filters['asset_code'] ?? null, fn (Builder $q, string $code) => $q->whereHas('asset', fn (Builder $a) => $a->withTrashed()->whereRaw('upper(code) = ?', [strtoupper($code)])))
+            ->when(! $actor->isEmployee() ? ($filters['borrower'] ?? null) : null, fn (Builder $q, string $term) => $q->whereHas('borrower', fn (Builder $b) => $b->withTrashed()->where(fn (Builder $w) => $w
+                ->whereLike('name', "%{$term}%")
+                ->orWhereRaw('lower(email) = ?', [strtolower($term)]))))
+            ->when($filters['date_from'] ?? null, fn (Builder $q, string $date) => $q->whereDate('loaned_at', '>=', $date))
+            ->when($filters['date_to'] ?? null, fn (Builder $q, string $date) => $q->whereDate('loaned_at', '<=', $date));
+
+        return [
+            'total' => (clone $query)->count(),
+            'items' => $query->with(['asset:id,code,name', 'borrower:id,name'])
+                ->orderByDesc('loaned_at')
+                ->orderByDesc('id')
+                ->limit(min(max($limit, 1), 20))
+                ->get(),
+        ];
     }
 
     /** available → borrowed. The asset row is locked so two lends of one asset queue up; the loser gets a conflict. */
