@@ -76,7 +76,7 @@ Jangan menambah fitur di luar daftar "Wajib MVP" tanpa persetujuan Ega.
 - Jangan pernah menerima `user_id` atau identitas dari argumen LLM. Untuk Karyawan, filter peminjam selalu dipaksa ke dirinya sendiri.
 - Daftar tool yang dikirim ke LLM disesuaikan role; scope di Service tetap berlaku sebagai lapis kedua.
 - Enam tool: `search_assets`, `get_asset_detail`, `list_active_loans`, `get_loan_history`, `get_maintenance_history` (tidak untuk Karyawan), `get_inventory_summary`.
-- Batasan: hasil tool maks 20 baris, maks 3 putaran tool per pertanyaan, timeout LLM ~20 detik, input maks 500 karakter, riwayat maks 6 pesan (dikirim client, tidak disimpan server), rate limit 20 pesan/jam per user.
+- Batasan: hasil tool maks 20 baris, maks 3 putaran tool per pertanyaan, timeout LLM ~20 detik, input maks 500 karakter, riwayat maks 6 pesan (dikirim client, tidak disimpan server; di browser disimpan di localStorage per user dan dihapus saat logout — keputusan Ega 20 Nov 2026, riwayat di database tetap Stretch), rate limit 20 pesan/jam per user.
 - Output tool tidak pernah berisi: email user lain, password/token, `purchase_price` untuk Karyawan, ID internal database.
 - Endpoint: `POST /chat/messages` → `{ reply, links[], meta{tool_calls, truncated} }`. `links` dibentuk server dari hasil tool, bukan ditulis LLM.
 - Error JSON: `{ "error": { "code", "message" } }` — 422 `validation_failed`, 429 `rate_limited` (+ `retry_after`), 502 `llm_error`, 504 `llm_timeout`.
