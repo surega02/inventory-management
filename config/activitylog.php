@@ -46,7 +46,12 @@ return [
      * These attributes will be excluded from logging for all models.
      * Model-specific exclusions via logExcept() are merged with these.
      */
-    'default_except_attributes' => [],
+    'default_except_attributes' => [
+        // secrets never reach the audit log
+        'password', 'remember_token',
+        // noise: timestamps and counters change on every write or login
+        'created_at', 'updated_at', 'email_verified_at', 'last_login_at', 'last_sequence',
+    ],
 
     /*
      * When enabled, activities are buffered in memory and inserted in a

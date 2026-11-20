@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\MaintenanceStatus;
+use App\Models\Concerns\Audited;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -26,6 +27,8 @@ use Illuminate\Support\Carbon;
 #[Fillable(['description', 'vendor', 'cost'])]
 class Maintenance extends Model
 {
+    use Audited;
+
     protected function casts(): array
     {
         return [

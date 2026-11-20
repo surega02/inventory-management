@@ -4,6 +4,7 @@ namespace App\Models;
 
 use App\Enums\AssetCondition;
 use App\Enums\AssetStatus;
+use App\Models\Concerns\Audited;
 use Database\Factories\AssetFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Scope;
@@ -41,7 +42,7 @@ use Illuminate\Support\Carbon;
 class Asset extends Model
 {
     /** @use HasFactory<AssetFactory> */
-    use HasFactory, SoftDeletes;
+    use Audited, HasFactory, SoftDeletes;
 
     protected function casts(): array
     {

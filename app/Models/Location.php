@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Audited;
 use Database\Factories\LocationFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -23,7 +24,7 @@ use Illuminate\Support\Carbon;
 class Location extends Model
 {
     /** @use HasFactory<LocationFactory> */
-    use HasFactory, SoftDeletes;
+    use Audited, HasFactory, SoftDeletes;
 
     /** @return HasMany<Asset, $this> */
     public function assets(): HasMany

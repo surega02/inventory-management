@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Concerns\Audited;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -23,6 +24,8 @@ use Illuminate\Support\Carbon;
 #[Fillable(['reason'])]
 class AssetMovement extends Model
 {
+    use Audited;
+
     protected function casts(): array
     {
         return ['moved_at' => 'datetime'];

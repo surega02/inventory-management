@@ -3,6 +3,7 @@
 namespace App\Models;
 
 use App\Enums\AssetCondition;
+use App\Models\Concerns\Audited;
 use Database\Factories\LoanFactory;
 use Illuminate\Database\Eloquent\Attributes\Fillable;
 use Illuminate\Database\Eloquent\Attributes\Scope;
@@ -32,7 +33,7 @@ use Illuminate\Support\Carbon;
 class Loan extends Model
 {
     /** @use HasFactory<LoanFactory> */
-    use HasFactory;
+    use Audited, HasFactory;
 
     protected function casts(): array
     {
