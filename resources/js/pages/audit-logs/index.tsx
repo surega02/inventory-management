@@ -44,9 +44,9 @@ const humanize = (s: string) =>
 const showValue = (v: unknown) =>
     v === null || v === undefined || v === ''
         ? '—'
-        : typeof v === 'object'
-          ? JSON.stringify(v)
-          : String(v);
+        : typeof v === 'string'
+          ? v
+          : JSON.stringify(v);
 
 const formatTime = (value: string | null) =>
     value

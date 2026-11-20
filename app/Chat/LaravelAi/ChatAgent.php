@@ -2,6 +2,7 @@
 
 namespace App\Chat\LaravelAi;
 
+use Laravel\Ai\Attributes\RepairToolCalls;
 use Laravel\Ai\Contracts\Agent;
 use Laravel\Ai\Contracts\Conversational;
 use Laravel\Ai\Contracts\HasTools;
@@ -9,7 +10,14 @@ use Laravel\Ai\Contracts\Tool;
 use Laravel\Ai\Messages\Message;
 use Laravel\Ai\Promptable;
 
-/** Internal to LaravelAiClient; history comes from the request, not the SDK's conversation tables. */
+/**
+ * Internal to LaravelAiClient; history comes from the request, not the SDK's conversation tables.
+ *
+ * RepairToolCalls: a call to a tool this user was not given (e.g. an employee's model asking
+ * for get_maintenance_history) goes back to the model as "does not exist" instead of failing
+ * the whole turn with 502. It still uses up one of the tool rounds.
+ */
+#[RepairToolCalls]
 class ChatAgent implements Agent, Conversational, HasTools
 {
     use Promptable;

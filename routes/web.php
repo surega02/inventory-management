@@ -3,6 +3,7 @@
 use App\Http\Controllers\AssetController;
 use App\Http\Controllers\AuditLogController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\ChatController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\LoanController;
 use App\Http\Controllers\LocationController;
@@ -19,6 +20,8 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::get('assets/{asset}', [AssetController::class, 'show'])->whereNumber('asset')->name('assets.show');
     // every role; LoanService::list limits employees to their own loans
     Route::get('loans', [LoanController::class, 'index'])->name('loans.index');
+    // every role; tools and services scope the answer to the session user
+    Route::post('chat/messages', ChatController::class)->middleware('throttle:chat')->name('chat.messages');
 });
 
 Route::middleware(['auth', 'active', 'role:admin|warehouse_staff'])->group(function () {

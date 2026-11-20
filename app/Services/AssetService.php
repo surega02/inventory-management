@@ -109,6 +109,23 @@ class AssetService
     }
 
     /**
+     * Code → id for the given codes the actor may see; codes outside scope are simply absent.
+     * Used to build chatbot links, so a link never points at a page that would 404.
+     *
+     * @param  list<string>  $codes  upper-case codes
+     * @return array<string, int>
+     */
+    public function idsByCodes(User $actor, array $codes): array
+    {
+        if ($codes === []) {
+            return [];
+        }
+
+        /** @var array<string, int> */
+        return Asset::visibleTo($actor)->whereIn('code', $codes)->pluck('id', 'code')->all();
+    }
+
+    /**
      * Next code = {CATEGORY}-{4+ digits}. The category row is locked FOR UPDATE so two
      * concurrent creates in one category queue up instead of taking the same number.
      *
