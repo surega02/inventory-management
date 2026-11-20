@@ -28,3 +28,25 @@ export type AssetDetail = {
     useful_life_years: number | null;
     notes: string | null;
 };
+
+/** AssetController::show(): one location change (managers only). */
+export type MovementRow = {
+    id: number;
+    from: string;
+    to: string;
+    moved_at: string;
+    reason: string | null;
+    recorded_by: string;
+};
+
+/** AssetController::show(): one maintenance job (managers only). */
+export type MaintenanceRow = {
+    id: number;
+    description: string;
+    vendor: string | null;
+    started_at: string;
+    completed_at: string | null;
+    cost: string | null;
+    status: 'in_progress' | 'done';
+    recorded_by: string;
+};

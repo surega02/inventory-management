@@ -6,11 +6,15 @@ use App\Enums\AssetCondition;
 use App\Enums\AssetStatus;
 use App\Http\Requests\AssetRequest;
 use App\Models\Asset;
+use App\Models\AssetMovement;
 use App\Models\Category;
 use App\Models\Loan;
 use App\Models\Location;
+use App\Models\Maintenance;
 use App\Services\AssetService;
 use App\Services\LoanService;
+use App\Services\MaintenanceService;
+use App\Services\MovementService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -68,25 +72,48 @@ class AssetController extends Controller
         return $this->done("Asset {$asset->code} created.", $asset);
     }
 
-    public function show(Request $request, int $asset, LoanService $loans): Response
+    public function show(Request $request, int $asset, LoanService $loans, MovementService $movements, MaintenanceService $maintenances): Response
     {
         $asset = $this->assets->findVisible($request->user(), $asset); // 404 outside the actor's scope
         $user = $request->user();
+        $manages = $user->canManageInventory();
 
         return Inertia::render('assets/show', [
             'asset' => [
                 ...$this->detail($asset),
                 // employees never see prices (same rule as the chatbot tools)
-                'purchase_price' => $user->canManageInventory() ? $asset->purchase_price : null,
+                'purchase_price' => $manages ? $asset->purchase_price : null,
             ],
             // employees only get their own loans of this asset (LoanService uses visibleTo)
             'loans' => $loans->forAsset($user, $asset)->map(fn (Loan $l) => LoanController::row($l)),
+            // movement and maintenance history are operational data: managers only (employees get empty lists)
+            'movements' => $manages ? $movements->forAsset($asset)->map(fn (AssetMovement $m) => [
+                'id' => $m->id,
+                'from' => $m->fromLocation->name,
+                'to' => $m->toLocation->name,
+                'moved_at' => $m->moved_at->toIso8601String(),
+                'reason' => $m->reason,
+                'recorded_by' => $m->recorder->name,
+            ]) : [],
+            'maintenances' => $manages ? $maintenances->forAsset($asset)->map(fn (Maintenance $m) => [
+                'id' => $m->id,
+                'description' => $m->description,
+                'vendor' => $m->vendor,
+                'started_at' => $m->started_at->toDateString(),
+                'completed_at' => $m->completed_at?->toDateString(),
+                'cost' => $m->cost,
+                'status' => $m->status,
+                'recorded_by' => $m->recorder->name,
+            ]) : [],
             'conditions' => array_column(AssetCondition::cases(), 'value'),
+            'locations' => $manages ? Location::orderBy('name')->get(['id', 'code', 'name']) : [],
             'abilities' => [
                 'update' => $user->can('update', $asset),
                 'dispose' => $user->can('dispose', $asset),
                 'delete' => $user->can('delete', $asset) && ! $this->assets->hasHistory($asset),
                 'return' => $user->can('create', Loan::class),
+                'move' => $user->can('move', $asset),
+                'maintain' => $user->can('create', Maintenance::class),
             ],
         ]);
     }

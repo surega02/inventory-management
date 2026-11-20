@@ -1,7 +1,12 @@
 import { Form, Head, Link, router } from '@inertiajs/react';
-import { Archive, Pencil, Trash2 } from 'lucide-react';
+import { Archive, ArrowRightLeft, Pencil, Trash2, Wrench } from 'lucide-react';
 import { useState } from 'react';
 import AssetController from '@/actions/App/Http/Controllers/AssetController';
+import {
+    CompleteMaintenanceDialog,
+    MoveAssetDialog,
+    StartMaintenanceDialog,
+} from '@/components/asset-action-dialogs';
 import AssetStatusBadge from '@/components/asset-status-badge';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
@@ -18,17 +23,29 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { edit, index } from '@/routes/assets';
-import type { AssetCondition, AssetDetail, LoanRow } from '@/types';
+import type {
+    AssetCondition,
+    AssetDetail,
+    LoanRow,
+    MaintenanceRow,
+    MovementRow,
+    Option,
+} from '@/types';
 
 type Props = {
     asset: AssetDetail;
     loans: LoanRow[];
+    movements: MovementRow[];
+    maintenances: MaintenanceRow[];
     conditions: AssetCondition[];
+    locations: Option[];
     abilities: {
         update: boolean;
         dispose: boolean;
         delete: boolean;
         return: boolean;
+        move: boolean;
+        maintain: boolean;
     };
 };
 
@@ -41,11 +58,21 @@ const rupiah = new Intl.NumberFormat('id-ID', {
 export default function AssetShow({
     asset,
     loans,
+    movements,
+    maintenances,
     conditions,
+    locations,
     abilities,
 }: Props) {
     const [disposing, setDisposing] = useState(false);
     const [returning, setReturning] = useState<LoanRow | null>(null);
+    const [moving, setMoving] = useState(false);
+    const [starting, setStarting] = useState(false);
+    const [completing, setCompleting] = useState<MaintenanceRow | null>(null);
+    // mirror the services; the server still answers a conflict if the page is stale
+    const movable = asset.status !== 'borrowed' && asset.status !== 'disposed';
+    const maintainable =
+        asset.status === 'available' || asset.status === 'broken';
     // mirrors AssetService::dispose: not when already disposed, on loan or under maintenance
     const disposable =
         asset.status === 'available' || asset.status === 'broken';
@@ -86,6 +113,34 @@ export default function AssetShow({
                         </div>
                     </div>
                     <div className="flex flex-wrap gap-2">
+                        {abilities.move && (
+                            <Button
+                                variant="outline"
+                                disabled={!movable}
+                                title={
+                                    movable
+                                        ? undefined
+                                        : 'Borrowed or disposed assets cannot be moved'
+                                }
+                                onClick={() => setMoving(true)}
+                            >
+                                <ArrowRightLeft /> Move
+                            </Button>
+                        )}
+                        {abilities.maintain && (
+                            <Button
+                                variant="outline"
+                                disabled={!maintainable}
+                                title={
+                                    maintainable
+                                        ? undefined
+                                        : 'Only available or broken assets can go into maintenance'
+                                }
+                                onClick={() => setStarting(true)}
+                            >
+                                <Wrench /> Maintenance
+                            </Button>
+                        )}
                         {abilities.update && (
                             <Button variant="outline" asChild>
                                 <Link href={edit(asset.id)}>
@@ -217,7 +272,148 @@ export default function AssetShow({
                         </div>
                     )}
                 </section>
+
+                {abilities.maintain && (
+                    <section className="rounded-xl border text-sm">
+                        <h2 className="px-4 pt-4 pb-2 font-medium">
+                            Maintenance history
+                        </h2>
+                        {maintenances.length === 0 ? (
+                            <p className="px-4 pb-4 text-muted-foreground">
+                                No maintenance yet.
+                            </p>
+                        ) : (
+                            <div className="overflow-x-auto">
+                                <table className="w-full">
+                                    <thead className="text-left text-muted-foreground">
+                                        <tr>
+                                            <th className="px-4 py-2 font-medium">
+                                                Work
+                                            </th>
+                                            <th className="px-4 py-2 font-medium">
+                                                Started
+                                            </th>
+                                            <th className="hidden px-4 py-2 font-medium sm:table-cell">
+                                                Completed
+                                            </th>
+                                            <th className="hidden px-4 py-2 text-right font-medium sm:table-cell">
+                                                Cost
+                                            </th>
+                                            <th />
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {maintenances.map((m) => (
+                                            <tr key={m.id} className="border-t">
+                                                <td className="px-4 py-2">
+                                                    {m.description}
+                                                    <div className="text-muted-foreground">
+                                                        {[
+                                                            m.vendor,
+                                                            `by ${m.recorded_by}`,
+                                                        ]
+                                                            .filter(Boolean)
+                                                            .join(' · ')}
+                                                    </div>
+                                                </td>
+                                                <td className="px-4 py-2 whitespace-nowrap">
+                                                    {formatDate(m.started_at)}
+                                                </td>
+                                                <td className="hidden px-4 py-2 whitespace-nowrap sm:table-cell">
+                                                    {formatDate(m.completed_at)}
+                                                </td>
+                                                <td className="hidden px-4 py-2 text-right whitespace-nowrap sm:table-cell">
+                                                    {m.cost === null
+                                                        ? '—'
+                                                        : rupiah.format(
+                                                              Number(m.cost),
+                                                          )}
+                                                </td>
+                                                <td className="px-4 py-2 text-right">
+                                                    {m.status ===
+                                                    'in_progress' ? (
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            onClick={() =>
+                                                                setCompleting(m)
+                                                            }
+                                                        >
+                                                            Complete
+                                                        </Button>
+                                                    ) : (
+                                                        <span className="text-muted-foreground">
+                                                            Done
+                                                        </span>
+                                                    )}
+                                                </td>
+                                            </tr>
+                                        ))}
+                                    </tbody>
+                                </table>
+                            </div>
+                        )}
+                    </section>
+                )}
+
+                {abilities.move && (
+                    <section className="rounded-xl border text-sm">
+                        <h2 className="px-4 pt-4 pb-2 font-medium">
+                            Location history
+                        </h2>
+                        {movements.length === 0 ? (
+                            <p className="px-4 pb-4 text-muted-foreground">
+                                Never moved.
+                            </p>
+                        ) : (
+                            <ul>
+                                {movements.map((m) => (
+                                    <li
+                                        key={m.id}
+                                        className="flex flex-wrap justify-between gap-x-4 border-t px-4 py-2"
+                                    >
+                                        <span>
+                                            {m.from} → {m.to}
+                                            {m.reason && (
+                                                <span className="text-muted-foreground">
+                                                    {` · ${m.reason}`}
+                                                </span>
+                                            )}
+                                        </span>
+                                        <span className="text-muted-foreground">
+                                            {formatDate(m.moved_at)} by{' '}
+                                            {m.recorded_by}
+                                        </span>
+                                    </li>
+                                ))}
+                            </ul>
+                        )}
+                    </section>
+                )}
             </div>
+
+            {abilities.move && (
+                <MoveAssetDialog
+                    open={moving}
+                    onClose={() => setMoving(false)}
+                    asset={asset}
+                    locations={locations}
+                />
+            )}
+            {abilities.maintain && (
+                <>
+                    <StartMaintenanceDialog
+                        open={starting}
+                        onClose={() => setStarting(false)}
+                        asset={asset}
+                    />
+                    <CompleteMaintenanceDialog
+                        maintenance={completing}
+                        onClose={() => setCompleting(null)}
+                        assetCode={asset.code}
+                    />
+                </>
+            )}
 
             <Dialog open={disposing} onOpenChange={setDisposing}>
                 <DialogContent>

@@ -94,7 +94,7 @@ class AssetTest extends TestCase
         $this->actingAs($employee)->get(route('assets.show', $own))
             ->assertInertia(fn (Assert $p) => $p->where('asset.code', $own->code)
                 ->where('asset.purchase_price', null) // employees never see prices
-                ->where('abilities', ['update' => false, 'dispose' => false, 'delete' => false, 'return' => false]));
+                ->where('abilities', ['update' => false, 'dispose' => false, 'delete' => false, 'return' => false, 'move' => false, 'maintain' => false]));
         $this->get(route('assets.show', $other))->assertNotFound(); // 404, not 403: no hint it exists
         $this->get(route('assets.show', 999999))->assertNotFound();
     }
