@@ -9,6 +9,7 @@ use App\Models\Asset;
 use App\Models\Category;
 use App\Models\User;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\DB;
 
@@ -44,6 +45,24 @@ class AssetService
             ->orderBy('id')
             ->paginate(20)
             ->withQueryString();
+    }
+
+    /**
+     * Up to 20 available assets matching $term, for the lend form's combobox.
+     *
+     * @return Collection<int, Asset>
+     */
+    public function lendable(User $actor, ?string $term): Collection
+    {
+        return Asset::visibleTo($actor)
+            ->where('status', AssetStatus::Available)
+            ->when($term, fn (Builder $q, string $term) => $q->where(fn (Builder $w) => $w
+                ->whereLike('code', "%{$term}%")
+                ->orWhereLike('name', "%{$term}%")
+                ->orWhereLike('serial_number', "%{$term}%")))
+            ->orderBy('code')
+            ->limit(20)
+            ->get(['id', 'code', 'name']);
     }
 
     /** 404 when the asset does not exist or is outside the actor's scope. */

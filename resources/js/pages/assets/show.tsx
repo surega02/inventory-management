@@ -5,6 +5,8 @@ import AssetController from '@/actions/App/Http/Controllers/AssetController';
 import AssetStatusBadge from '@/components/asset-status-badge';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
+import LoanStatusBadge, { formatDate } from '@/components/loan-status-badge';
+import ReturnLoanDialog from '@/components/return-loan-dialog';
 import { Button } from '@/components/ui/button';
 import {
     Dialog,
@@ -16,11 +18,18 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { edit, index } from '@/routes/assets';
-import type { AssetDetail } from '@/types';
+import type { AssetCondition, AssetDetail, LoanRow } from '@/types';
 
 type Props = {
     asset: AssetDetail;
-    can: { update: boolean; dispose: boolean; delete: boolean };
+    loans: LoanRow[];
+    conditions: AssetCondition[];
+    abilities: {
+        update: boolean;
+        dispose: boolean;
+        delete: boolean;
+        return: boolean;
+    };
 };
 
 const rupiah = new Intl.NumberFormat('id-ID', {
@@ -29,8 +38,14 @@ const rupiah = new Intl.NumberFormat('id-ID', {
     maximumFractionDigits: 0,
 });
 
-export default function AssetShow({ asset, can }: Props) {
+export default function AssetShow({
+    asset,
+    loans,
+    conditions,
+    abilities,
+}: Props) {
     const [disposing, setDisposing] = useState(false);
+    const [returning, setReturning] = useState<LoanRow | null>(null);
     // mirrors AssetService::dispose: not when already disposed, on loan or under maintenance
     const disposable =
         asset.status === 'available' || asset.status === 'broken';
@@ -71,14 +86,14 @@ export default function AssetShow({ asset, can }: Props) {
                         </div>
                     </div>
                     <div className="flex flex-wrap gap-2">
-                        {can.update && (
+                        {abilities.update && (
                             <Button variant="outline" asChild>
                                 <Link href={edit(asset.id)}>
                                     <Pencil /> Edit
                                 </Link>
                             </Button>
                         )}
-                        {can.dispose && (
+                        {abilities.dispose && (
                             <Button
                                 variant="outline"
                                 disabled={!disposable}
@@ -92,7 +107,7 @@ export default function AssetShow({ asset, can }: Props) {
                                 <Archive /> Dispose
                             </Button>
                         )}
-                        {can.delete && (
+                        {abilities.delete && (
                             <Button
                                 variant="outline"
                                 onClick={() =>
@@ -131,12 +146,76 @@ export default function AssetShow({ asset, can }: Props) {
                     )}
                 </dl>
 
-                <section className="rounded-xl border p-4 text-sm text-muted-foreground">
-                    <h2 className="mb-1 font-medium text-foreground">
-                        History
-                    </h2>
-                    Loans, movements and maintenance appear here once those
-                    pages are built.
+                <section className="rounded-xl border text-sm">
+                    <h2 className="px-4 pt-4 pb-2 font-medium">Loan history</h2>
+                    {loans.length === 0 ? (
+                        <p className="px-4 pb-4 text-muted-foreground">
+                            No loans yet.
+                        </p>
+                    ) : (
+                        <div className="overflow-x-auto">
+                            <table className="w-full">
+                                <thead className="text-left text-muted-foreground">
+                                    <tr>
+                                        <th className="px-4 py-2 font-medium">
+                                            Borrower
+                                        </th>
+                                        <th className="px-4 py-2 font-medium">
+                                            Loaned
+                                        </th>
+                                        <th className="hidden px-4 py-2 font-medium sm:table-cell">
+                                            Due
+                                        </th>
+                                        <th className="hidden px-4 py-2 font-medium sm:table-cell">
+                                            Returned
+                                        </th>
+                                        <th className="px-4 py-2 font-medium">
+                                            Status
+                                        </th>
+                                        {abilities.return && <th />}
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {loans.map((l) => (
+                                        <tr key={l.id} className="border-t">
+                                            <td className="px-4 py-2">
+                                                {l.borrower}
+                                            </td>
+                                            <td className="px-4 py-2 whitespace-nowrap">
+                                                {formatDate(l.loaned_at)}
+                                            </td>
+                                            <td className="hidden px-4 py-2 whitespace-nowrap sm:table-cell">
+                                                {formatDate(l.due_date)}
+                                            </td>
+                                            <td className="hidden px-4 py-2 whitespace-nowrap sm:table-cell">
+                                                {formatDate(l.returned_at)}
+                                                {l.return_condition &&
+                                                    ` (${l.return_condition})`}
+                                            </td>
+                                            <td className="px-4 py-2">
+                                                <LoanStatusBadge loan={l} />
+                                            </td>
+                                            {abilities.return && (
+                                                <td className="px-4 py-2 text-right">
+                                                    {!l.returned_at && (
+                                                        <Button
+                                                            size="sm"
+                                                            variant="outline"
+                                                            onClick={() =>
+                                                                setReturning(l)
+                                                            }
+                                                        >
+                                                            Return
+                                                        </Button>
+                                                    )}
+                                                </td>
+                                            )}
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    )}
                 </section>
             </div>
 
@@ -189,6 +268,18 @@ export default function AssetShow({ asset, can }: Props) {
                     </Form>
                 </DialogContent>
             </Dialog>
+
+            <ReturnLoanDialog
+                loan={
+                    returning && {
+                        id: returning.id,
+                        assetCode: asset.code,
+                        borrower: returning.borrower,
+                    }
+                }
+                conditions={conditions}
+                onClose={() => setReturning(null)}
+            />
         </>
     );
 }

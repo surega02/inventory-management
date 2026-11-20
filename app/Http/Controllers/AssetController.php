@@ -7,8 +7,10 @@ use App\Enums\AssetStatus;
 use App\Http\Requests\AssetRequest;
 use App\Models\Asset;
 use App\Models\Category;
+use App\Models\Loan;
 use App\Models\Location;
 use App\Services\AssetService;
+use App\Services\LoanService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Gate;
@@ -66,7 +68,7 @@ class AssetController extends Controller
         return $this->done("Asset {$asset->code} created.", $asset);
     }
 
-    public function show(Request $request, int $asset): Response
+    public function show(Request $request, int $asset, LoanService $loans): Response
     {
         $asset = $this->assets->findVisible($request->user(), $asset); // 404 outside the actor's scope
         $user = $request->user();
@@ -77,10 +79,14 @@ class AssetController extends Controller
                 // employees never see prices (same rule as the chatbot tools)
                 'purchase_price' => $user->canManageInventory() ? $asset->purchase_price : null,
             ],
-            'can' => [
+            // employees only get their own loans of this asset (LoanService uses visibleTo)
+            'loans' => $loans->forAsset($user, $asset)->map(fn (Loan $l) => LoanController::row($l)),
+            'conditions' => array_column(AssetCondition::cases(), 'value'),
+            'abilities' => [
                 'update' => $user->can('update', $asset),
                 'dispose' => $user->can('dispose', $asset),
                 'delete' => $user->can('delete', $asset) && ! $this->assets->hasHistory($asset),
+                'return' => $user->can('create', Loan::class),
             ],
         ]);
     }

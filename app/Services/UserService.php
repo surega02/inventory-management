@@ -4,6 +4,8 @@ namespace App\Services;
 
 use App\Enums\Role;
 use App\Models\User;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Support\Facades\DB;
 
 /** User writes. Role lives in spatie's pivot (no model event), so role changes are audited here. */
@@ -35,6 +37,22 @@ class UserService
 
             return $user;
         });
+    }
+
+    /**
+     * Up to 20 active users matching $term, for the lend form's borrower combobox.
+     *
+     * @return Collection<int, User>
+     */
+    public function borrowerOptions(?string $term): Collection
+    {
+        return User::where('is_active', true)
+            ->when($term, fn (Builder $q, string $term) => $q->where(fn (Builder $w) => $w
+                ->whereLike('name', "%{$term}%")
+                ->orWhereLike('email', "%{$term}%")))
+            ->orderBy('name')
+            ->limit(20)
+            ->get(['id', 'name', 'email']);
     }
 
     public function toggleActive(User $user): User

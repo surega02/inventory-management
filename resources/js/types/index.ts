@@ -1,5 +1,6 @@
 export type * from './asset';
 export type * from './auth';
+export type * from './loan';
 export type * from './navigation';
 export type * from './pagination';
 export type * from './ui';

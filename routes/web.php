@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AssetController;
 use App\Http\Controllers\CategoryController;
+use App\Http\Controllers\LoanController;
 use App\Http\Controllers\LocationController;
 use App\Http\Controllers\UserController;
 use Illuminate\Support\Facades\Route;
@@ -12,11 +13,15 @@ Route::middleware(['auth', 'active'])->group(function () {
     Route::inertia('dashboard', 'dashboard')->name('dashboard');
     // every role; employees only reach assets they currently borrow (404 otherwise)
     Route::get('assets/{asset}', [AssetController::class, 'show'])->whereNumber('asset')->name('assets.show');
+    // every role; LoanService::list limits employees to their own loans
+    Route::get('loans', [LoanController::class, 'index'])->name('loans.index');
 });
 
 Route::middleware(['auth', 'active', 'role:admin|warehouse_staff'])->group(function () {
     Route::resource('assets', AssetController::class)->except('show');
     Route::post('assets/{asset}/dispose', [AssetController::class, 'dispose'])->name('assets.dispose');
+    Route::post('loans', [LoanController::class, 'store'])->name('loans.store');
+    Route::post('loans/{loan}/return', [LoanController::class, 'return'])->name('loans.return');
     Route::resource('categories', CategoryController::class)->only(['index', 'store', 'update', 'destroy']);
     Route::resource('locations', LocationController::class)->only(['index', 'store', 'update', 'destroy']);
 });

@@ -88,13 +88,13 @@ class AssetTest extends TestCase
 
         foreach (['admin', 'staff'] as $role) {
             $this->actingAs(User::factory()->{$role}()->create())->get(route('assets.show', $other))
-                ->assertInertia(fn (Assert $p) => $p->component('assets/show')->whereNot('asset.purchase_price', null));
+                ->assertInertia(fn (Assert $p) => $p->component('assets/show')->whereNot('asset.purchase_price', null)->where('can.manage_assets', true));
         }
 
         $this->actingAs($employee)->get(route('assets.show', $own))
             ->assertInertia(fn (Assert $p) => $p->where('asset.code', $own->code)
                 ->where('asset.purchase_price', null) // employees never see prices
-                ->where('can', ['update' => false, 'dispose' => false, 'delete' => false]));
+                ->where('abilities', ['update' => false, 'dispose' => false, 'delete' => false, 'return' => false]));
         $this->get(route('assets.show', $other))->assertNotFound(); // 404, not 403: no hint it exists
         $this->get(route('assets.show', 999999))->assertNotFound();
     }
