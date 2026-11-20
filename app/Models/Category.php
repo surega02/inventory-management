@@ -27,6 +27,12 @@ class Category extends Model
     /** @use HasFactory<CategoryFactory> */
     use Audited, HasFactory, SoftDeletes;
 
+    /** Once an asset code was issued with this prefix, changing it would orphan those codes. */
+    public function isCodeLocked(): bool
+    {
+        return $this->last_sequence > 0;
+    }
+
     /** @return HasMany<Asset, $this> */
     public function assets(): HasMany
     {
