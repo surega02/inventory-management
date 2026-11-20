@@ -24,8 +24,8 @@ Kalau ada konflik antara kode dan dokumen, ikuti dokumen lalu tanyakan ke Ega.
 ## Stack (final)
 
 - Laravel 13 + starter kit React resmi (Inertia 3, React 19, TypeScript, Tailwind 4, shadcn/ui). Monolith, bukan SPA terpisah.
-  - Versi terpasang (19 Nov 2026): Laravel 13.43, Inertia 3 (`inertiajs/inertia-laravel` ^3.0, `@inertiajs/react` ^3.0), React 19.2, PHP 8.4, PostgreSQL 17.10. Starter kit dari `dev-main` (rilis stabil Packagist masih Laravel 12).
-  - Fitur auth starter kit: hanya login + reset password (registrasi, verifikasi email, 2FA, passkeys dibuang).
+    - Versi terpasang (19 Nov 2026): Laravel 13.43, Inertia 3 (`inertiajs/inertia-laravel` ^3.0, `@inertiajs/react` ^3.0), React 19.2, PHP 8.4, PostgreSQL 17.10. Starter kit dari `dev-main` (rilis stabil Packagist masih Laravel 12).
+    - Fitur auth starter kit: hanya login + reset password (registrasi, verifikasi email, 2FA, passkeys dibuang).
 - PostgreSQL (dev: `inventory_assets`, test: `inventory_assets_test`; test tidak memakai SQLite).
 - spatie/laravel-permission (role), spatie/laravel-activitylog (audit log).
 - LLM: `laravel/ai` (SDK resmi) di balik interface `LlmClient` (`app/Chat/LlmClient.php`). Provider: Gemini `gemini-3.5-flash-lite` (free tier), diatur lewat `LLM_PROVIDER`/`LLM_MODEL`. Final setelah spike Hari 1 (lulus 14/15). Prism tidak dipakai.
@@ -36,15 +36,15 @@ Kalau ada konflik antara kode dan dokumen, ikuti dokumen lalu tanyakan ke Ega.
 
 Satu user = satu role. Role di-seed: `admin`, `warehouse_staff`, `employee`.
 
-| Kemampuan | Admin | Staff Gudang | Karyawan |
-| --- | --- | --- | --- |
-| Kelola user & role | Ya | Tidak | Tidak |
-| Lihat aset | Semua | Semua | Hanya yang sedang dia pinjam |
-| CRUD aset, kategori, lokasi | Ya | Ya | Tidak |
-| Catat pinjam/kembali, mutasi, maintenance | Ya | Ya | Tidak |
-| Riwayat pinjaman | Semua | Semua | Hanya miliknya |
-| Audit log | Ya | Tidak | Tidak |
-| Chatbot | Scope penuh | Scope operasional | Hanya data pinjaman sendiri |
+| Kemampuan                                 | Admin       | Staff Gudang      | Karyawan                     |
+| ----------------------------------------- | ----------- | ----------------- | ---------------------------- |
+| Kelola user & role                        | Ya          | Tidak             | Tidak                        |
+| Lihat aset                                | Semua       | Semua             | Hanya yang sedang dia pinjam |
+| CRUD aset, kategori, lokasi               | Ya          | Ya                | Tidak                        |
+| Catat pinjam/kembali, mutasi, maintenance | Ya          | Ya                | Tidak                        |
+| Riwayat pinjaman                          | Semua       | Semua             | Hanya miliknya               |
+| Audit log                                 | Ya          | Tidak             | Tidak                        |
+| Chatbot                                   | Scope penuh | Scope operasional | Hanya data pinjaman sendiri  |
 
 Peminjaman dicatat langsung oleh Staff/Admin, tanpa pengajuan atau approval dari Karyawan. Tidak ada registrasi publik.
 
