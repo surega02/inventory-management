@@ -2,6 +2,7 @@ import { Form, Head, Link, router } from '@inertiajs/react';
 import { Pencil, Plus, Power, Search } from 'lucide-react';
 import { useState } from 'react';
 import UserController from '@/actions/App/Http/Controllers/UserController';
+import ConfirmDialog from '@/components/confirm-dialog';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import { Badge } from '@/components/ui/badge';
@@ -45,15 +46,7 @@ export default function Users({ users, roles, filters }: Props) {
     const [editing, setEditing] = useState<UserRow | 'new' | null>(null);
     const user = editing === 'new' ? null : editing;
 
-    const toggle = (u: UserRow) => {
-        if (confirm(`${u.is_active ? 'Deactivate' : 'Activate'} ${u.name}?`)) {
-            router.post(
-                UserController.toggleActive.url(u.id),
-                {},
-                { preserveScroll: true },
-            );
-        }
-    };
+    const [toggling, setToggling] = useState<UserRow | null>(null);
 
     return (
         <>
@@ -175,7 +168,7 @@ export default function Users({ users, roles, filters }: Props) {
                                                     ? 'You cannot deactivate yourself'
                                                     : undefined
                                             }
-                                            onClick={() => toggle(u)}
+                                            onClick={() => setToggling(u)}
                                         >
                                             <Power />
                                         </Button>
@@ -328,6 +321,24 @@ export default function Users({ users, roles, filters }: Props) {
                     </Form>
                 </DialogContent>
             </Dialog>
+
+            <ConfirmDialog
+                request={
+                    toggling && {
+                        title: `${toggling.is_active ? 'Deactivate' : 'Activate'} ${toggling.name}?`,
+                        description: toggling.is_active
+                            ? 'They are signed out on their next request and cannot log in until an admin activates the account again. Their loan history is kept.'
+                            : 'They will be able to log in again with their existing password.',
+                        confirmLabel: toggling.is_active
+                            ? 'Deactivate user'
+                            : 'Activate user',
+                        destructive: toggling.is_active,
+                        method: 'post',
+                        url: UserController.toggleActive.url(toggling.id),
+                    }
+                }
+                onClose={() => setToggling(null)}
+            />
         </>
     );
 }

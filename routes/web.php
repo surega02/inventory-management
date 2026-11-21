@@ -33,7 +33,11 @@ Route::middleware(['auth', 'active', 'role:admin|warehouse_staff'])->group(funct
     Route::post('assets/{asset}/maintenances', [MaintenanceController::class, 'store'])->name('assets.maintenances.store');
     Route::post('maintenances/{maintenance}/complete', [MaintenanceController::class, 'complete'])->name('maintenances.complete');
     Route::resource('categories', CategoryController::class)->only(['index', 'store', 'update', 'destroy']);
+    Route::post('categories/{category}/restore', [CategoryController::class, 'restore'])->withTrashed()->name('categories.restore');
+    Route::delete('categories/{category}/force', [CategoryController::class, 'forceDelete'])->withTrashed()->name('categories.force-delete');
     Route::resource('locations', LocationController::class)->only(['index', 'store', 'update', 'destroy']);
+    Route::post('locations/{location}/restore', [LocationController::class, 'restore'])->withTrashed()->name('locations.restore');
+    Route::delete('locations/{location}/force', [LocationController::class, 'forceDelete'])->withTrashed()->name('locations.force-delete');
 });
 
 Route::middleware(['auth', 'active', 'role:admin'])->group(function () {

@@ -1,4 +1,4 @@
-import { Form, Head, Link, router } from '@inertiajs/react';
+import { Form, Head, Link } from '@inertiajs/react';
 import { Archive, ArrowRightLeft, Pencil, Trash2, Wrench } from 'lucide-react';
 import { useState } from 'react';
 import AssetController from '@/actions/App/Http/Controllers/AssetController';
@@ -8,6 +8,7 @@ import {
     StartMaintenanceDialog,
 } from '@/components/asset-action-dialogs';
 import AssetStatusBadge from '@/components/asset-status-badge';
+import ConfirmDialog from '@/components/confirm-dialog';
 import Heading from '@/components/heading';
 import InputError from '@/components/input-error';
 import LoanStatusBadge, { formatDate } from '@/components/loan-status-badge';
@@ -69,6 +70,7 @@ export default function AssetShow({
     const [moving, setMoving] = useState(false);
     const [starting, setStarting] = useState(false);
     const [completing, setCompleting] = useState<MaintenanceRow | null>(null);
+    const [deleting, setDeleting] = useState(false);
     // mirror the services; the server still answers a conflict if the page is stale
     const movable = asset.status !== 'borrowed' && asset.status !== 'disposed';
     const maintainable =
@@ -165,14 +167,7 @@ export default function AssetShow({
                         {abilities.delete && (
                             <Button
                                 variant="outline"
-                                onClick={() =>
-                                    confirm(
-                                        `Delete ${asset.code}? Only for assets created by mistake.`,
-                                    ) &&
-                                    router.delete(
-                                        AssetController.destroy.url(asset.id),
-                                    )
-                                }
+                                onClick={() => setDeleting(true)}
                             >
                                 <Trash2 /> Delete
                             </Button>
@@ -475,6 +470,22 @@ export default function AssetShow({
                 }
                 conditions={conditions}
                 onClose={() => setReturning(null)}
+            />
+
+            <ConfirmDialog
+                request={
+                    deleting
+                        ? {
+                              title: `Delete asset ${asset.code}?`,
+                              description: `${asset.name} will be removed from the asset list. Use this only for an asset created by mistake; to retire a real asset, use Dispose instead so its history stays visible.`,
+                              confirmLabel: 'Delete asset',
+                              destructive: true,
+                              method: 'delete',
+                              url: AssetController.destroy.url(asset.id),
+                          }
+                        : null
+                }
+                onClose={() => setDeleting(false)}
             />
         </>
     );

@@ -26,6 +26,18 @@ class Location extends Model
     /** @use HasFactory<LocationFactory> */
     use Audited, HasFactory, SoftDeletes;
 
+    /** Why a permanent delete is refused (FK RESTRICT), or null when it is safe. */
+    public function purgeBlocker(): ?string
+    {
+        if ($this->assets()->withTrashed()->exists()) {
+            return 'Used by deleted assets, so it can only be restored.';
+        }
+
+        $moved = AssetMovement::where('from_location_id', $this->id)->orWhere('to_location_id', $this->id)->exists();
+
+        return $moved ? 'Kept for asset movement history, so it can only be restored.' : null;
+    }
+
     /** @return HasMany<Asset, $this> */
     public function assets(): HasMany
     {

@@ -75,7 +75,7 @@ abstract class Tool implements ChatTool
 
         return in_array($value, $allowed, true)
             ? $value
-            : throw new InvalidArgumentException("Unknown {$key} \"{$value}\". Use one of: ".implode(', ', $allowed).'.');
+            : throw new InvalidArgumentException("Unknown {$key} \"{$value}\". Use one of: " . implode(', ', $allowed) . '.');
     }
 
     /** @param array<string, mixed> $args */

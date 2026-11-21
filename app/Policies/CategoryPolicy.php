@@ -27,4 +27,15 @@ class CategoryPolicy
     {
         return $user->canManageInventory();
     }
+
+    public function restore(User $user, Category $category): bool
+    {
+        return $user->canManageInventory();
+    }
+
+    /** Only for a category no asset ever used; the controller checks that (409). */
+    public function forceDelete(User $user, Category $category): bool
+    {
+        return $user->canManageInventory();
+    }
 }

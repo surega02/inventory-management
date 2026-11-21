@@ -27,4 +27,15 @@ class LocationPolicy
     {
         return $user->canManageInventory();
     }
+
+    public function restore(User $user, Location $location): bool
+    {
+        return $user->canManageInventory();
+    }
+
+    /** Only for a location nothing references; the controller checks that (409). */
+    public function forceDelete(User $user, Location $location): bool
+    {
+        return $user->canManageInventory();
+    }
 }

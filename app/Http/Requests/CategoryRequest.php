@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\Category;
+use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -28,15 +29,29 @@ class CategoryRequest extends FormRequest
     public function rules(): array
     {
         $category = $this->route('category');
+        $category = $category instanceof Category ? $category : null;
 
         return [
-            // unique across soft-deleted rows too, matching the DB unique index
-            'code' => $category instanceof Category && $category->isCodeLocked()
+            // unique across soft-deleted rows too, matching the DB unique index; a deleted
+            // owner gets its own message because the fix is to restore it, not to retry
+            'code' => $category && $category->isCodeLocked()
                 ? ['required', Rule::in([$category->code])]
-                : ['required', 'regex:/^[A-Z0-9]{2,10}$/', Rule::unique('categories', 'code')->ignore($category)],
+                : ['bail', 'required', 'regex:/^[A-Z0-9]{2,10}$/', $this->notTakenByDeleted($category), Rule::unique('categories', 'code')->ignore($category)],
             'name' => ['required', 'string', 'max:100'],
             'default_useful_life_years' => ['nullable', 'integer', 'min:1', 'max:50'],
         ];
+    }
+
+    private function notTakenByDeleted(?Category $category): Closure
+    {
+        return function (string $attribute, mixed $value, Closure $fail) use ($category): void {
+            $taken = Category::onlyTrashed()->where('code', $value)
+                ->when($category, fn ($q) => $q->whereKeyNot($category->id))->exists();
+
+            if ($taken) {
+                $fail('A deleted category uses this code. Restore it from the Deleted tab instead.');
+            }
+        };
     }
 
     /** @return array<string, string> */

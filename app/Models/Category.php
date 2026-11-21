@@ -33,6 +33,14 @@ class Category extends Model
         return $this->last_sequence > 0;
     }
 
+    /** Why a permanent delete is refused (FK RESTRICT), or null when it is safe. */
+    public function purgeBlocker(): ?string
+    {
+        return $this->assets()->withTrashed()->exists()
+            ? 'Used by deleted assets, so it can only be restored.'
+            : null;
+    }
+
     /** @return HasMany<Asset, $this> */
     public function assets(): HasMany
     {

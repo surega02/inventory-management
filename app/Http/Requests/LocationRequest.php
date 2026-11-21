@@ -3,6 +3,7 @@
 namespace App\Http\Requests;
 
 use App\Models\Location;
+use Closure;
 use Illuminate\Contracts\Validation\ValidationRule;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Validation\Rule;
@@ -26,12 +27,28 @@ class LocationRequest extends FormRequest
     /** @return array<string, ValidationRule|array<mixed>|string> */
     public function rules(): array
     {
+        $location = $this->route('location');
+        $location = $location instanceof Location ? $location : null;
+
         return [
-            // unique across soft-deleted rows too, matching the DB unique index
-            'code' => ['required', 'regex:/^[A-Z0-9-]{2,20}$/', Rule::unique('locations', 'code')->ignore($this->route('location'))],
+            // unique across soft-deleted rows too, matching the DB unique index; a deleted
+            // owner gets its own message because the fix is to restore it, not to retry
+            'code' => ['bail', 'required', 'regex:/^[A-Z0-9-]{2,20}$/', $this->notTakenByDeleted($location), Rule::unique('locations', 'code')->ignore($location)],
             'name' => ['required', 'string', 'max:100'],
             'description' => ['nullable', 'string', 'max:1000'],
         ];
+    }
+
+    private function notTakenByDeleted(?Location $location): Closure
+    {
+        return function (string $attribute, mixed $value, Closure $fail) use ($location): void {
+            $taken = Location::onlyTrashed()->where('code', $value)
+                ->when($location, fn ($q) => $q->whereKeyNot($location->id))->exists();
+
+            if ($taken) {
+                $fail('A deleted location uses this code. Restore it from the Deleted tab instead.');
+            }
+        };
     }
 
     /** @return array<string, string> */

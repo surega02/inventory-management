@@ -10,13 +10,17 @@ type Category = {
     default_useful_life_years: number | null;
     assets_count: number;
     code_locked: boolean;
+    deleted_at: string | null;
+    purge_blocker: string | null;
 };
 
-export default function Categories({
-    categories,
-}: {
+type Props = {
     categories: Paginated<Category>;
-}) {
+    view: 'active' | 'deleted';
+    deleted_count: number;
+};
+
+export default function Categories({ categories, view, deleted_count }: Props) {
     return (
         <MasterDataPage<Category>
             title="Categories"
@@ -70,6 +74,14 @@ export default function Categories({
             storeForm={CategoryController.store.form()}
             updateForm={(c) => CategoryController.update.form(c.id)}
             destroyUrl={(c) => CategoryController.destroy.url(c.id)}
+            trash={{
+                view,
+                deletedCount: deleted_count,
+                activeUrl: index.url(),
+                deletedUrl: index.url({ query: { view: 'deleted' } }),
+                restoreUrl: (c) => CategoryController.restore.url(c.id),
+                forceDeleteUrl: (c) => CategoryController.forceDelete.url(c.id),
+            }}
         />
     );
 }
