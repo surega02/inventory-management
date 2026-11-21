@@ -1,4 +1,4 @@
-import { Head, Link, usePage } from "@inertiajs/react";
+import { Head, Link, usePage } from '@inertiajs/react';
 import {
     AlertTriangle,
     ArrowLeftRight,
@@ -7,16 +7,16 @@ import {
     Package,
     Undo2,
     Wrench,
-} from "lucide-react";
-import type { ReactNode } from "react";
-import { statusLabel } from "@/components/asset-status-badge";
-import Heading from "@/components/heading";
-import LoanStatusBadge, { formatDate } from "@/components/loan-status-badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { dashboard } from "@/routes";
-import { index as assetsIndex, show } from "@/routes/assets";
-import { index as loansIndex } from "@/routes/loans";
-import type { AssetStatus, LoanRow } from "@/types";
+} from 'lucide-react';
+import type { ReactNode } from 'react';
+import { statusLabel } from '@/components/asset-status-badge';
+import Heading from '@/components/heading';
+import LoanStatusBadge, { formatDate } from '@/components/loan-status-badge';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { dashboard } from '@/routes';
+import { index as assetsIndex, show } from '@/routes/assets';
+import { index as loansIndex } from '@/routes/loans';
+import type { AssetStatus, LoanRow } from '@/types';
 
 type Group = { code: string; name: string; count: number };
 
@@ -32,11 +32,11 @@ type Row = LoanRow & { asset: { id: number; code: string; name: string } };
 
 type Event = {
     kind:
-        | "lent"
-        | "returned"
-        | "moved"
-        | "maintenance_started"
-        | "maintenance_completed";
+        | 'lent'
+        | 'returned'
+        | 'moved'
+        | 'maintenance_started'
+        | 'maintenance_completed';
     at: string;
     asset: { id: number; code: string; name: string };
     detail: string | null;
@@ -44,29 +44,29 @@ type Event = {
 
 type Props = {
     summary: Summary;
-    loans: { kind: "overdue" | "mine"; total: number; items: Row[] };
+    loans: { kind: 'overdue' | 'mine'; total: number; items: Row[] };
     recent: Event[];
 };
 
 const statusBar: Record<AssetStatus, string> = {
-    available: "bg-emerald-500",
-    borrowed: "bg-blue-500",
-    maintenance: "bg-amber-500",
-    broken: "bg-red-500",
-    disposed: "bg-muted-foreground/40",
+    available: 'bg-emerald-500',
+    borrowed: 'bg-blue-500',
+    maintenance: 'bg-amber-500',
+    broken: 'bg-red-500',
+    disposed: 'bg-muted-foreground/40',
 };
 
-const eventMeta: Record<Event["kind"], { icon: ReactNode; label: string }> = {
-    lent: { icon: <Handshake className="size-4" />, label: "Lent to" },
-    returned: { icon: <Undo2 className="size-4" />, label: "Returned by" },
-    moved: { icon: <ArrowLeftRight className="size-4" />, label: "Moved" },
+const eventMeta: Record<Event['kind'], { icon: ReactNode; label: string }> = {
+    lent: { icon: <Handshake className="size-4" />, label: 'Lent to' },
+    returned: { icon: <Undo2 className="size-4" />, label: 'Returned by' },
+    moved: { icon: <ArrowLeftRight className="size-4" />, label: 'Moved' },
     maintenance_started: {
         icon: <Wrench className="size-4" />,
-        label: "Maintenance started",
+        label: 'Maintenance started',
     },
     maintenance_completed: {
         icon: <CheckCircle2 className="size-4" />,
-        label: "Maintenance completed",
+        label: 'Maintenance completed',
     },
 };
 
@@ -79,7 +79,7 @@ function Stat({
     label: string;
     value: number;
     href?: string;
-    tone?: "danger";
+    tone?: 'danger';
 }) {
     const body = (
         <Card className="gap-1 py-4 transition-colors hover:bg-muted/40">
@@ -87,12 +87,12 @@ function Stat({
                 <div className="text-sm text-muted-foreground">{label}</div>
                 <div
                     className={`text-2xl font-semibold tabular-nums ${
-                        tone === "danger" && value > 0
-                            ? "text-red-600 dark:text-red-400"
-                            : ""
+                        tone === 'danger' && value > 0
+                            ? 'text-red-600 dark:text-red-400'
+                            : ''
                     }`}
                 >
-                    {value.toLocaleString("en-US")}
+                    {value.toLocaleString('en-US')}
                 </div>
             </CardContent>
         </Card>
@@ -138,11 +138,11 @@ export default function Dashboard({ summary, loans, recent }: Props) {
 
             <div className="flex flex-col gap-4 p-4">
                 <Heading
-                    title={`Hello, ${auth.user?.name ?? ""}`}
+                    title={`Hello, ${auth.user?.name ?? ''}`}
                     description={
                         manages
-                            ? "Inventory at a glance."
-                            : "The assets you currently have on loan."
+                            ? 'Inventory at a glance.'
+                            : 'The assets you currently have on loan.'
                     }
                 />
 
@@ -158,20 +158,20 @@ export default function Dashboard({ summary, loans, recent }: Props) {
                                 label="Available"
                                 value={byStatus.available}
                                 href={assetsIndex.url({
-                                    query: { status: "available" },
+                                    query: { status: 'available' },
                                 })}
                             />
                         </>
                     )}
                     <Stat
-                        label={manages ? "Active loans" : "On loan to me"}
+                        label={manages ? 'Active loans' : 'On loan to me'}
                         value={summary.active_loans}
-                        href={loansIndex.url({ query: { status: "active" } })}
+                        href={loansIndex.url({ query: { status: 'active' } })}
                     />
                     <Stat
                         label="Overdue"
                         value={summary.overdue_loans}
-                        href={loansIndex.url({ query: { status: "overdue" } })}
+                        href={loansIndex.url({ query: { status: 'overdue' } })}
                         tone="danger"
                     />
                 </div>
@@ -253,7 +253,7 @@ export default function Dashboard({ summary, loans, recent }: Props) {
                     <Card className="gap-3 py-4">
                         <CardHeader className="flex flex-row items-center justify-between px-4">
                             <CardTitle className="flex items-center gap-2 text-base">
-                                {loans.kind === "overdue" ? (
+                                {loans.kind === 'overdue' ? (
                                     <>
                                         <AlertTriangle className="size-4 text-red-600 dark:text-red-400" />
                                         Most overdue
@@ -270,9 +270,9 @@ export default function Dashboard({ summary, loans, recent }: Props) {
                                     href={loansIndex.url({
                                         query: {
                                             status:
-                                                loans.kind === "overdue"
-                                                    ? "overdue"
-                                                    : "active",
+                                                loans.kind === 'overdue'
+                                                    ? 'overdue'
+                                                    : 'active',
                                         },
                                     })}
                                     className="text-sm text-muted-foreground hover:underline"
@@ -284,9 +284,9 @@ export default function Dashboard({ summary, loans, recent }: Props) {
                         <CardContent className="px-4">
                             {loans.items.length === 0 ? (
                                 <p className="text-sm text-muted-foreground">
-                                    {loans.kind === "overdue"
-                                        ? "No overdue loans."
-                                        : "You have no assets on loan."}
+                                    {loans.kind === 'overdue'
+                                        ? 'No overdue loans.'
+                                        : 'You have no assets on loan.'}
                                 </p>
                             ) : (
                                 <ul className="divide-y">
@@ -306,7 +306,7 @@ export default function Dashboard({ summary, loans, recent }: Props) {
                                                     {l.asset.name}
                                                 </span>
                                                 <div className="text-sm text-muted-foreground">
-                                                    {loans.kind === "overdue" &&
+                                                    {loans.kind === 'overdue' &&
                                                         `${l.borrower} · `}
                                                     Due {formatDate(l.due_date)}
                                                 </div>
@@ -343,7 +343,7 @@ export default function Dashboard({ summary, loans, recent }: Props) {
                                             <div className="min-w-0 text-sm">
                                                 {/* employees can only open assets they still have */}
                                                 {manages ||
-                                                e.kind === "lent" ? (
+                                                e.kind === 'lent' ? (
                                                     <Link
                                                         href={show(e.asset.id)}
                                                         className="font-medium hover:underline"
@@ -354,10 +354,10 @@ export default function Dashboard({ summary, loans, recent }: Props) {
                                                     <span className="font-medium">
                                                         {e.asset.code}
                                                     </span>
-                                                )}{" "}
+                                                )}{' '}
                                                 <span className="text-muted-foreground">
                                                     {eventMeta[e.kind].label}
-                                                </span>{" "}
+                                                </span>{' '}
                                                 {e.detail && (
                                                     <span className="break-words">
                                                         {e.detail}
@@ -382,7 +382,7 @@ export default function Dashboard({ summary, loans, recent }: Props) {
 Dashboard.layout = {
     breadcrumbs: [
         {
-            title: "Dashboard",
+            title: 'Dashboard',
             href: dashboard(),
         },
     ],
